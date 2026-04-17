@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>不動産購入試算書（概算）</title>
+<style>
+/* ============================================
+   SCREEN STYLES
+   ============================================ */
+:root {
+  --primary: #1a3a5c;
+  --accent:  #2563eb;
+  --bg:      #f0f4f8;
+  --border:  #d1d5db;
+  --muted:   #64748b;
+  --light:   #eff6ff;
+  --success: #059669;
+}
+*{ box-sizing:border-box; margin:0; padding:0; }
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Hiragino Sans','Yu Gothic',sans-serif;
+  background:var(--bg); color:#1e293b; line-height:1.7; font-size:15px;
+}
+a{ color:var(--accent); }
+
+/* --- Header --- */
+.header{
+  background:linear-gradient(135deg,#1a3a5c 0%,#2563eb 100%);
+  color:white; padding:28px 20px; text-align:center;
+}
+.header h1{ font-size:clamp(1.2em,4vw,1.7em); font-weight:800; margin-bottom:4px; }
+.header p{ font-size:0.87em; opacity:0.88; }
+
+.container{ max-width:720px; margin:0 auto; padding:20px 14px 60px; }
+
+/* --- Progress --- */
+.prog{ display:flex; align-items:flex-start; justify-content:center; margin:20px 0 26px; }
+.pg-item{ display:flex; flex-direction:column; align-items:center; gap:5px; }
+.pg-circle{
+  width:36px; height:36px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:0.88em; font-weight:700;
+  border:2.5px solid var(--border); background:white; color:var(--muted);
+  transition:all .3s;
+}
+.pg-circle.act{ background:var(--accent); border-color:var(--accent); color:white; box-shadow:0 0 0 4px #bfdbfe; }
+.pg-circle.done{ background:var(--success); border-color:var(--success); color:white; }
+.pg-label{ font-size:0.71em; color:var(--muted); text-align:center; max-width:60px; line-height:1.3; }
+.pg-line{ flex:1; height:2.5px; background:var(--border); margin:17px 5px 0; transition:background .3s; }
+.pg-line.done{ background:var(--success); }
+
+/* --- Card --- */
+.card{
+  background:white; border-radius:16px; padding:22px 20px; margin-bottom:14px;
+  box-shadow:0 2px 8px rgba(0,0,0,.06); border:1px solid var(--border);
+}
+.card-ttl{ font-size:1.12em; font-weight:700; margin-bottom:4px; }
+.card-sub{ font-size:0.82em; color:var(--muted); margin-bottom:18px; }
+
+/* --- Option grid --- */
+.og{ display:grid; grid-template-columns:repeat(auto-fill,minmax(148px,1fr)); gap:10px; }
+.oc{
+  border:2.5px solid var(--border); border-radius:13px; padding:14px 10px 13px;
+  text-align:center; cursor:pointer; transition:all .18s; background:white; user-select:none;
+}
+.oc:hover,.oc.sel{
+  border-color:var(--accent); background:var(--light);
+  transform:translateY(-2px); box-shadow:0 4px 12px rgba(37,99,235,.14);
+}
+.oc .icon{ font-size:2em; margin-bottom:6px; }
+.oc .lbl{ font-size:0.87em; font-weight:700; line-height:1.3; }
+.oc .dsc{ font-size:0.71em; color:var(--muted); margin-top:4px; line-height:1.4; }
+
+/* --- Inputs --- */
+.field{ margin-bottom:18px; }
+.field label{ display:block; font-size:0.88em; font-weight:700; margin-bottom:5px; }
+.field-hint{ font-size:0.77em; color:var(--muted); margin-bottom:6px; }
+.irow{ display:flex; align-items:center; gap:8px; }
+.irow input, .irow select{
+  flex:1; padding:12px 14px; border:2px solid var(--border); border-radius:10px;
+  font-size:0.97em; outline:none; transition:border-color .2s;
+  -webkit-appearance:none; background:white;
+}
+.irow input:focus,.irow select:focus{ border-color:var(--accent); }
+.unit{ font-size:0.87em; color:var(--muted); white-space:nowrap; }
+
+.land-bld{ display:none; }
+.land-bld.show{ display:block; }
+
+/* --- Toggle --- */
+.trow{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:13px 15px; border:2px solid var(--border); border-radius:11px;
+  margin-bottom:10px; cursor:pointer; transition:border-color .2s;
+}
+.trow:hover,.trow.on{ border-color:var(--accent); background:var(--light); }
+.tlbl{ font-size:0.88em; font-weight:600; }
+.thnt{ font-size:0.76em; color:var(--muted); margin-top:2px; }
+.knob{
+  width:48px; height:26px; background:#cbd5e1; border-radius:13px;
+  position:relative; transition:background .22s; flex-shrink:0;
+}
+.knob.on{ background:var(--accent); }
+.knob::after{
+  content:''; position:absolute;
+  width:20px; height:20px; background:white; border-radius:50%;
+  top:3px; left:3px; transition:left .22s;
+  box-shadow:0 1px 4px rgba(0,0,0,.2);
+}
+.knob.on::after{ left:25px; }
+
+/* --- Buttons --- */
+.btn{
+  padding:13px 20px; border-radius:11px; font-size:0.96em;
+  font-weight:700; cursor:pointer; transition:all .18s; border:none; width:100%;
+}
+.btn-p{ background:var(--accent); color:white; }
+.btn-p:hover:not(:disabled){ background:#1d4ed8; transform:translateY(-1px); }
+.btn-p:disabled{ background:#94a3b8; cursor:not-allowed; }
+.btn-g{ background:white; color:var(--accent); border:2px solid var(--accent); }
+.btn-g:hover{ background:var(--light); }
+.btn-row{ display:flex; gap:10px; margin-top:20px; }
+.btn-row .btn-g{ max-width:100px; }
+
+/* --- Section divider --- */
+.sec-div{
+  background:#f1f5f9; border-radius:8px; padding:8px 14px;
+  font-size:0.8em; font-weight:700; color:var(--muted);
+  margin:16px 0 8px; letter-spacing:.03em;
+}
+
+/* --- Steps --- */
+.step{ display:none; }
+.step.act{ display:block; animation:fadeUp .3s ease; }
+@keyframes fadeUp{ from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+/* --- Print button (screen only) --- */
+.print-btn-wrap{
+  background:white; border:2px solid var(--border); border-radius:14px;
+  padding:16px; margin-bottom:14px; text-align:center;
+}
+.print-btn-wrap p{ font-size:0.84em; color:var(--muted); margin-bottom:10px; }
+
+/* ============================================
+   PRINT SHEET (screen preview)
+   ============================================ */
+.sheet-wrap{
+  background:white; border:1px solid var(--border); border-radius:14px;
+  padding:32px 36px; margin-bottom:14px;
+  box-shadow:0 2px 12px rgba(0,0,0,.06);
+  font-family:'Yu Gothic','Hiragino Mincho Pro',serif;
+}
+
+/* Sheet header */
+.sh-header{
+  display:flex; justify-content:space-between; align-items:flex-start;
+  padding-bottom:14px; border-bottom:2.5px solid var(--primary);
+  margin-bottom:20px;
+}
+.sh-title{ font-size:1.55em; font-weight:800; color:var(--primary); line-height:1.3; }
+.sh-title .sh-sub{ font-size:0.62em; font-weight:400; color:var(--muted); display:block; margin-top:2px; }
+.sh-company{ text-align:right; font-size:0.83em; line-height:1.9; color:#333; }
+.sh-company strong{ font-size:1.1em; color:var(--primary); display:block; }
+
+/* Customer + property */
+.sh-info{ margin-bottom:20px; }
+.sh-customer{ font-size:1.15em; font-weight:700; margin-bottom:8px; }
+.sh-prop-row{ display:flex; gap:20px; font-size:0.88em; border:1px solid var(--border); border-radius:6px; overflow:hidden; }
+.sh-prop-lbl{ background:#f8fafc; padding:9px 14px; font-weight:700; white-space:nowrap; color:var(--primary); border-right:1px solid var(--border); min-width:100px; }
+.sh-prop-val{ padding:9px 14px; flex:1; }
+.sh-price-row{ display:flex; align-items:baseline; gap:12px; margin-top:10px; }
+.sh-price-lbl{ font-size:0.88em; font-weight:700; color:var(--primary); min-width:80px; }
+.sh-price-val{ font-size:1.35em; font-weight:800; color:#1e293b; }
+
+/* Main table */
+.sh-table{ width:100%; border-collapse:collapse; margin-bottom:0; font-size:0.88em; }
+.sh-table th{
+  background:var(--primary); color:white; padding:9px 14px;
+  font-size:0.82em; letter-spacing:.04em;
+}
+.sh-table th:last-child{ text-align:right; }
+.sh-table td{ padding:9px 14px; border-bottom:1px solid #e9eef5; vertical-align:top; }
+.sh-table tr:last-child td{ border-bottom:none; }
+.sh-table .cat-row td{
+  background:#f0f4f8; font-weight:800; color:var(--primary);
+  font-size:0.9em; letter-spacing:.04em; border-bottom:2px solid #d1d9e6;
+  padding:10px 14px;
+}
+.sh-table .amt{ text-align:right; white-space:nowrap; font-weight:600; }
+.sh-table .total-row td{
+  background:#e8f4f8; font-weight:800; font-size:1.02em;
+  border-top:2px solid #93c5fd; padding:11px 14px;
+  color:var(--primary);
+}
+.sh-table .total-row .amt{ font-size:1.1em; }
+.sh-table .grand-row td{
+  background:var(--primary); color:white; font-weight:800;
+  font-size:1.08em; padding:12px 14px; border:none;
+}
+.sh-table .grand-row .amt{ font-size:1.15em; }
+.sh-table .later-row td{
+  background:#fff7ed; border-top:2px dashed #fed7aa;
+  color:#92400e; font-size:0.9em;
+}
+.sh-table .later-row .amt{ color:#c2410c; font-weight:700; }
+.note-approx{
+  font-size:0.75em; color:var(--muted); margin-left:6px; white-space:nowrap;
+  font-weight:400;
+}
+.note-cond{
+  font-size:0.73em; color:var(--muted); margin-left:6px; white-space:nowrap;
+}
+.sh-table td .sub-note{ font-size:0.76em; color:var(--muted); margin-top:2px; }
+
+/* Section label inside table */
+.circle-num{
+  display:inline-block; width:20px; height:20px; border-radius:50%;
+  background:var(--primary); color:white; font-size:0.75em; font-weight:700;
+  text-align:center; line-height:20px; margin-left:8px;
+}
+
+/* 不動産取得税 block */
+.sh-acqui{
+  border:1.5px dashed #cbd5e1; border-radius:8px; padding:14px 16px; margin-top:16px;
+}
+.sh-acqui-ttl{ font-size:0.82em; font-weight:700; color:#92400e; margin-bottom:8px; }
+.sh-acqui-row{ display:flex; justify-content:space-between; align-items:baseline; font-size:0.88em; }
+.sh-acqui-val{ font-size:1.2em; font-weight:800; color:#c2410c; }
+
+/* Disclaimer */
+.sh-note{
+  margin-top:18px; font-size:0.78em; color:var(--muted);
+  border-top:1px solid var(--border); padding-top:12px; line-height:1.8;
+}
+.sh-date{ font-size:0.8em; color:var(--muted); text-align:right; margin-top:8px; }
+
+@media(max-width:480px){
+  .og{ grid-template-columns:repeat(2,1fr); }
+  .sheet-wrap{ padding:18px 14px; }
+  .sh-header{ flex-direction:column; gap:12px; }
+  .sh-company{ text-align:left; }
+}
+
+/* ============================================
+   PRINT STYLES
+   ============================================ */
+@media print{
+  @page{ size:A4 portrait; margin:12mm 14mm; }
+
+  /* Hide everything except the sheet */
+  .header, .container > *:not(#printArea){ display:none !important; }
+  #printArea{ display:block !important; }
+  .no-print, .print-btn-wrap, .btn-row{ display:none !important; }
+
+  body{ background:white; font-size:13px; }
+  .sheet-wrap{
+    border:none; box-shadow:none; padding:0; border-radius:0;
+    font-family:'Yu Mincho','Hiragino Mincho Pro','MS Mincho',serif;
+  }
+  .sh-header{ padding-bottom:10px; margin-bottom:14px; }
+  .sh-title{ font-size:1.4em; }
+  .sh-table{ font-size:0.85em; }
+  .sh-table td, .sh-table th{ padding:7px 10px; }
+  .sh-acqui{ border:1px dashed #aaa; }
+  .sh-note{ font-size:0.74em; }
+}
+</style>
+</head>
+<body>
+
+<div class="header no-print">
+  <h1>🏠 不動産購入試算書 作成ツール</h1>
+  <p>お客様へのご案内用・PDF印刷対応</p>
+</div>
+
+<div class="container">
+
+  <!-- ===== PROGRESS ===== -->
+  <div class="prog no-print" id="progBar">
+    <div class="pg-item"><div class="pg-circle act" id="pc1">1</div><div class="pg-label">物件<br>タイプ</div></div>
+    <div class="pg-line" id="pl1"></div>
+    <div class="pg-item"><div class="pg-circle" id="pc2">2</div><div class="pg-label">購入<br>目的</div></div>
+    <div class="pg-line" id="pl2"></div>
+    <div class="pg-item"><div class="pg-circle" id="pc3">3</div><div class="pg-label">詳細<br>入力</div></div>
+    <div class="pg-line" id="pl3"></div>
+    <div class="pg-item"><div class="pg-circle" id="pc4">4</div><div class="pg-label">試算書</div></div>
+  </div>
+
+  <!-- ===== STEP 1: Property type ===== -->
+  <div class="step act no-print" id="s1">
+    <div class="card">
+      <div class="card-ttl">STEP 1：物件のタイプを選んでください</div>
+      <div class="card-sub">お客様が購入を検討されている不動産の種類を選択してください</div>
+      <div class="og">
+        <div class="oc" onclick="pickType('new_mansion',this)">
+          <div class="icon">🏢</div>
+          <div class="lbl">新築マンション</div>
+          <div class="dsc">新築の区分所有マンション</div>
+        </div>
+        <div class="oc" onclick="pickType('used_mansion',this)">
+          <div class="icon">🏬</div>
+          <div class="lbl">中古マンション</div>
+          <div class="dsc">中古の区分所有マンション</div>
+        </div>
+        <div class="oc" onclick="pickType('new_house',this)">
+          <div class="icon">🏠</div>
+          <div class="lbl">新築一戸建て<br><small style="font-weight:400;font-size:.85em">（建売）</small></div>
+          <div class="dsc">すでに建っている新築の一軒家</div>
+        </div>
+        <div class="oc" onclick="pickType('used_house',this)">
+          <div class="icon">🏡</div>
+          <div class="lbl">中古一戸建て</div>
+          <div class="dsc">中古の一軒家</div>
+        </div>
+        <div class="oc" onclick="pickType('land_building',this)">
+          <div class="icon">🏗️</div>
+          <div class="lbl">土地＋注文住宅</div>
+          <div class="dsc">土地を購入して建物を新築（2契約）</div>
+        </div>
+        <div class="oc" onclick="pickType('land',this)">
+          <div class="icon">🌱</div>
+          <div class="lbl">土地のみ</div>
+          <div class="dsc">更地など建物なしの土地</div>
+        </div>
+        <div class="oc" onclick="pickType('military_land',this)">
+          <div class="icon">⭐</div>
+          <div class="lbl">軍用地</div>
+          <div class="dsc">米軍に貸し出されている土地</div>
+        </div>
+      </div>
+      <div class="btn-row"><button class="btn btn-p" id="b1n" onclick="goS(2)" disabled>次へ →</button></div>
+    </div>
+  </div>
+
+  <!-- ===== STEP 2: Purpose ===== -->
+  <div class="step no-print" id="s2">
+    <div class="card">
+      <div class="card-ttl">STEP 2：購入目的を選んでください</div>
+      <div class="card-sub">目的によって税率の特例適用が変わります</div>
+      <div class="og" style="grid-template-columns:repeat(2,1fr)">
+        <div class="oc" onclick="pickPurpose('residential',this)">
+          <div class="icon">👨‍👩‍👧</div>
+          <div class="lbl">居住用</div>
+          <div class="dsc">お客様ご自身が住まわれる</div>
+        </div>
+        <div class="oc" onclick="pickPurpose('investment',this)">
+          <div class="icon">💰</div>
+          <div class="lbl">投資・賃貸用</div>
+          <div class="dsc">賃貸運用を目的とする</div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-g" onclick="goS(1)">← 戻る</button>
+        <button class="btn btn-p" id="b2n" onclick="goS(3)" disabled style="flex:1">次へ →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== STEP 3: Details ===== -->
+  <div class="step no-print" id="s3">
+    <div class="card">
+      <div class="card-ttl">STEP 3：詳細を入力してください</div>
+      <div class="card-sub">お客様情報・物件情報・金額を入力してください</div>
+
+      <div class="sec-div">📋 会社・担当者情報（任意）</div>
+
+      <div class="field">
+        <label>不動産会社名</label>
+        <div class="irow"><input type="text" id="fCompany" placeholder="例：○○不動産株式会社"></div>
+      </div>
+      <div style="display:flex;gap:12px">
+        <div class="field" style="flex:1">
+          <label>担当者名</label>
+          <div class="irow"><input type="text" id="fAgent" placeholder="例：担当者名"></div>
+        </div>
+        <div class="field" style="flex:1">
+          <label>電話番号</label>
+          <div class="irow"><input type="text" id="fPhone" placeholder="例：0XX-XXXX-XXXX"></div>
+        </div>
+      </div>
+
+      <div class="sec-div">🏠 物件・お客様情報</div>
+
+      <div class="field">
+        <label>お客様名</label>
+        <div class="irow"><input type="text" id="fCustomer" placeholder="例：お客様名"></div>
+      </div>
+      <div class="field">
+        <label>購入予定物件（物件名・住所）</label>
+        <div class="irow"><input type="text" id="fProperty" placeholder="例：○○市○○町 ○○マンション101号室"></div>
+      </div>
+
+      <div class="sec-div">💴 金額・条件</div>
+
+      <!-- 通常の場合（土地+注文住宅以外） -->
+      <div id="normalPrice">
+        <div class="field">
+          <label>売買代金（税込）</label>
+          <div class="field-hint">売買契約書に記載される金額を入力してください</div>
+          <div class="irow">
+            <input type="number" id="fPrice" placeholder="例：3000" min="1" oninput="chk3()">
+            <span class="unit">万円</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 土地+注文住宅の場合 -->
+      <div id="lbPrice" class="land-bld">
+        <div class="field">
+          <label>土地の売買代金</label>
+          <div class="field-hint">土地売買契約書に記載される金額</div>
+          <div class="irow">
+            <input type="number" id="fLandPrice" placeholder="例：1500" min="1" oninput="chk3()">
+            <span class="unit">万円</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>建物の工事請負代金（建築費）</label>
+          <div class="field-hint">建設会社との工事請負契約書に記載される金額</div>
+          <div class="irow">
+            <input type="number" id="fBldPrice" placeholder="例：2000" min="1" oninput="chk3()">
+            <span class="unit">万円</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 手付金 -->
+      <div class="field">
+        <label>手付金</label>
+        <div class="field-hint">契約締結時に支払う手付金（通常は売買代金の10%程度）。0円の場合は0と入力</div>
+        <div class="irow">
+          <input type="number" id="fDeposit" placeholder="例：300" min="0" oninput="chk3()">
+          <span class="unit">万円</span>
+        </div>
+      </div>
+
+      <!-- 仲介手数料 -->
+      <div class="field" id="brokerField">
+        <label>仲介手数料</label>
+        <div class="trow" id="brokerRow" onclick="togBroker()">
+          <div>
+            <div class="tlbl">仲介手数料がかかる</div>
+            <div class="thnt">不動産仲介業者を通した場合はON。売主から直接の場合はOFF</div>
+          </div>
+          <div class="knob on" id="brokerKnob"></div>
+        </div>
+      </div>
+
+      <!-- ローン -->
+      <div class="field">
+        <label>住宅ローン</label>
+        <div class="trow" id="loanRow" onclick="togLoan()">
+          <div>
+            <div class="tlbl">住宅ローンを利用する</div>
+            <div class="thnt">金融機関からの借入がある場合はON</div>
+          </div>
+          <div class="knob" id="loanKnob"></div>
+        </div>
+        <div id="loanExt" style="display:none;margin-top:12px">
+          <div class="field">
+            <label>借入金額</label>
+            <div class="irow">
+              <input type="number" id="fLoan" placeholder="例：2500" min="1" oninput="chk3()">
+              <span class="unit">万円</span>
+            </div>
+          </div>
+          <div class="field">
+            <label>融資手数料の種類</label>
+            <div class="og" style="grid-template-columns:repeat(2,1fr)">
+              <div class="oc sel" id="ltFix" onclick="pickLT('fixed',this)">
+                <div class="lbl">定額型</div>
+                <div class="dsc">一定額（約3〜11万円）</div>
+              </div>
+              <div class="oc" id="ltPct" onclick="pickLT('percent',this)">
+                <div class="lbl">定率型</div>
+                <div class="dsc">借入額の約2.2%<br>（ネット銀行に多い）</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 火災保険 -->
+      <div class="field" id="insurField">
+        <label>火災保険</label>
+        <div class="trow" id="insurRow" onclick="togInsur()">
+          <div>
+            <div class="tlbl">火災保険料を試算書に含める</div>
+            <div class="thnt">※概算のため、実際の金額は保険会社にご確認ください</div>
+          </div>
+          <div class="knob on" id="insurKnob"></div>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-g" onclick="goS(2)">← 戻る</button>
+        <button class="btn btn-p" id="b3n" onclick="doCalc()" disabled style="flex:1">✨ 試算書を作成する</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== STEP 4: Result ===== -->
+  <div class="step no-print" id="s4">
+    <div class="print-btn-wrap no-print">
+      <p>✅ 試算書が完成しました。内容を確認して印刷・PDF保存ができます。</p>
+      <button class="btn btn-p" onclick="window.print()" style="max-width:220px;margin:0 auto">🖨️ 印刷 / PDF保存</button>
+    </div>
+    <div class="btn-row no-print" style="margin-bottom:14px">
+      <button class="btn btn-g" onclick="goS(3)">← 条件を変更する</button>
+      <button class="btn btn-p" onclick="resetAll()" style="flex:1">🔄 最初からやり直す</button>
+    </div>
+  </div>
+
+  <!-- ===== PRINT AREA ===== -->
+  <div id="printArea" style="display:none">
+    <div class="sheet-wrap">
+
+      <!-- Sheet header -->
+      <div class="sh-header">
+        <div>
+          <div class="sh-title">不動産購入試算書<span class="sh-sub">（概算）</span></div>
+          <div id="shDate" style="font-size:0.82em;color:var(--muted);margin-top:4px"></div>
+        </div>
+        <div class="sh-company" id="shCompany"></div>
+      </div>
+
+      <!-- Customer & property -->
+      <div class="sh-info">
+        <div class="sh-customer" id="shCustomer"></div>
+        <div class="sh-prop-row">
+          <div class="sh-prop-lbl">購入予定物件</div>
+          <div class="sh-prop-val" id="shProp"></div>
+        </div>
+        <div class="sh-price-row">
+          <div class="sh-price-lbl" id="shPriceLbl">売買代金</div>
+          <div class="sh-price-val" id="shPrice"></div>
+        </div>
+      </div>
+
+      <!-- Main fee table -->
+      <table class="sh-table">
+        <thead><tr>
+          <th style="width:26%">区　分</th>
+          <th>費　用　項　目</th>
+          <th style="width:28%;text-align:right">金　額</th>
+        </tr></thead>
+        <tbody id="shTableBody"></tbody>
+      </table>
+
+      <!-- 不動産取得税 -->
+      <div class="sh-acqui" id="shAcqui">
+        <div class="sh-acqui-ttl">📌 不動産取得税（取得後約6ヶ月に別途通知）※概算</div>
+        <div class="sh-acqui-row">
+          <span id="shAcquiNote"></span>
+          <span class="sh-acqui-val" id="shAcquiAmt"></span>
+        </div>
+      </div>
+
+      <!-- Disclaimer -->
+      <div class="sh-note" id="shNote"></div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<script>
+// ====================================================
+// STATE
+// ====================================================
+const S = {
+  type: null, purpose: null,
+  broker: true, loan: false, loanType: 'fixed', insur: true,
+};
+
+// ====================================================
+// NAVIGATION
+// ====================================================
+function goS(n) {
+  // military land → skip step 2 (always investment)
+  if (n === 2 && S.type === 'military_land') { S.purpose = 'investment'; n = 3; }
+  document.querySelectorAll('.step').forEach(e => e.classList.remove('act'));
+  document.getElementById('s' + n).classList.add('act');
+  updProg(n);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (n === 3) syncS3();
+}
+
+function updProg(cur) {
+  for (let i = 1; i <= 4; i++) {
+    const c = document.getElementById('pc' + i);
+    c.className = 'pg-circle' + (i < cur ? ' done' : i === cur ? ' act' : '');
+    c.textContent = i < cur ? '✓' : i;
+  }
+  for (let i = 1; i <= 3; i++) {
+    document.getElementById('pl' + i).className = 'pg-line' + (i < cur ? ' done' : '');
+  }
+}
+
+// ====================================================
+// STEP 1
+// ====================================================
+function pickType(t, el) {
+  S.type = t;
+  document.querySelectorAll('#s1 .oc').forEach(c => c.classList.remove('sel'));
+  el.classList.add('sel');
+  document.getElementById('b1n').disabled = false;
+  S.broker = (t !== 'new_mansion');
+}
+
+// ====================================================
+// STEP 2
+// ====================================================
+function pickPurpose(p, el) {
+  S.purpose = p;
+  document.querySelectorAll('#s2 .oc').forEach(c => c.classList.remove('sel'));
+  el.classList.add('sel');
+  document.getElementById('b2n').disabled = false;
+}
+
+// ====================================================
+// STEP 3
+// ====================================================
+function syncS3() {
+  const isLB = S.type === 'land_building';
+  document.getElementById('normalPrice').style.display = isLB ? 'none' : 'block';
+  document.getElementById('lbPrice').className = 'land-bld' + (isLB ? ' show' : '');
+  document.getElementById('brokerKnob').className = 'knob' + (S.broker ? ' on' : '');
+  document.getElementById('brokerRow').className   = 'trow' + (S.broker ? ' on' : '');
+  document.getElementById('loanKnob').className = 'knob' + (S.loan ? ' on' : '');
+  document.getElementById('loanRow').className   = 'trow' + (S.loan ? ' on' : '');
+  document.getElementById('loanExt').style.display = S.loan ? 'block' : 'none';
+  const isLand = ['land', 'military_land'].includes(S.type);
+  document.getElementById('insurField').style.display = isLand ? 'none' : 'block';
+  document.getElementById('insurKnob').className = 'knob' + (S.insur ? ' on' : '');
+  document.getElementById('insurRow').className   = 'trow' + (S.insur ? ' on' : '');
+  chk3();
+}
+function togBroker(){ S.broker = !S.broker; syncS3(); }
+function togLoan(){ S.loan = !S.loan; syncS3(); }
+function togInsur(){ S.insur = !S.insur; syncS3(); }
+function pickLT(t, el){
+  S.loanType = t;
+  document.getElementById('ltFix').classList.remove('sel');
+  document.getElementById('ltPct').classList.remove('sel');
+  el.classList.add('sel');
+}
+
+function chk3() {
+  const isLB = S.type === 'land_building';
+  let ok = false;
+  if (isLB) {
+    const lp = parseFloat(document.getElementById('fLandPrice').value);
+    const bp = parseFloat(document.getElementById('fBldPrice').value);
+    const dep = parseFloat(document.getElementById('fDeposit').value);
+    ok = lp > 0 && bp > 0 && dep >= 0 && !isNaN(dep);
+  } else {
+    const p = parseFloat(document.getElementById('fPrice').value);
+    const dep = parseFloat(document.getElementById('fDeposit').value);
+    ok = p > 0 && dep >= 0 && !isNaN(dep);
+  }
+  if (S.loan) {
+    const l = parseFloat(document.getElementById('fLoan').value);
+    ok = ok && l > 0;
+  }
+  document.getElementById('b3n').disabled = !ok;
+}
+
+// ====================================================
+// FORMATTING
+// ====================================================
+const Y = (n) => '¥' + Math.round(n).toLocaleString('ja-JP');
+const nowDate = () => {
+  const d = new Date();
+  return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;
+};
+
+// ====================================================
+// STAMP TAX TABLES (2027/3末まで軽減措置)
+// ====================================================
+function stampTax(yen) {
+  const p = yen;
+  if (p <=   5_000_000) return    2_000;
+  if (p <=  10_000_000) return    5_000;
+  if (p <=  50_000_000) return   10_000;
+  if (p <= 100_000_000) return   30_000;
+  if (p <= 500_000_000) return   60_000;
+  return 160_000;
+}
+function loanStamp(yen) {
+  const l = yen;
+  if (l <=  10_000_000) return    2_000;
+  if (l <=  50_000_000) return   20_000;
+  if (l <= 100_000_000) return   60_000;
+  if (l <= 500_000_000) return   60_000;
+  return 160_000;
+}
+function constrStamp(yen) {
+  const p = yen;
+  if (p <=   1_000_000) return      200;
+  if (p <=   2_000_000) return      400;
+  if (p <=   3_000_000) return    1_000;
+  if (p <=   5_000_000) return    2_000;
+  if (p <=  10_000_000) return   10_000;
+  if (p <=  50_000_000) return   20_000;
+  if (p <= 100_000_000) return   60_000;
+  return 160_000;
+}
+
+// ====================================================
+// MAIN CALCULATION
+// ====================================================
+function doCalc() {
+  const isLB        = S.type === 'land_building';
+  const isNewBuilding = ['new_mansion','new_house','land_building'].includes(S.type);
+  const isLandOnly  = ['land','military_land'].includes(S.type);
+  const isMansion   = ['new_mansion','used_mansion'].includes(S.type);
+  const isMilitary  = S.type === 'military_land';
+  const isUsed      = ['used_mansion','used_house'].includes(S.type);
+  const hasBuilding = !isLandOnly;
+  const isResidential = S.purpose === 'residential';
+
+  let totalPrice, landPrice, buildingPrice;
+  if (isLB) {
+    landPrice     = parseFloat(document.getElementById('fLandPrice').value) * 10000;
+    buildingPrice = parseFloat(document.getElementById('fBldPrice').value)  * 10000;
+    totalPrice    = landPrice + buildingPrice;
+  } else {
+    totalPrice = parseFloat(document.getElementById('fPrice').value) * 10000;
+    if (isMansion)       { landPrice = totalPrice * 0.35; buildingPrice = totalPrice * 0.65; }
+    else if (isLandOnly) { landPrice = totalPrice;        buildingPrice = 0; }
+    else                 { landPrice = totalPrice * 0.40; buildingPrice = totalPrice * 0.60; }
+  }
+
+  const depositAmt = parseFloat(document.getElementById('fDeposit').value) * 10000;
+  const remaining  = totalPrice - depositAmt;
+  const loanAmt    = S.loan ? parseFloat(document.getElementById('fLoan').value) * 10000 : 0;
+
+  const company  = document.getElementById('fCompany').value.trim()  || '';
+  const agent    = document.getElementById('fAgent').value.trim()    || '';
+  const phone    = document.getElementById('fPhone').value.trim()    || '';
+  const customer = document.getElementById('fCustomer').value.trim() || 'お客様';
+  const prop     = document.getElementById('fProperty').value.trim() || '（物件名未入力）';
+
+  // 仲介手数料
+  const brokerTotal = S.broker ? Math.ceil((totalPrice * 0.03 + 60000) * 1.1) : 0;
+  const brokerHalf1 = Math.ceil(brokerTotal / 2);
+  const brokerHalf2 = brokerTotal - brokerHalf1;
+
+  // 印紙税
+  const stSale   = stampTax(isLB ? landPrice : totalPrice);
+  const stConstr = isLB ? constrStamp(buildingPrice) : 0;
+  const stLoan   = S.loan ? loanStamp(loanAmt) : 0;
+
+  // 登記費用
+  const landAss = landPrice  * 0.70;
+  const bldAss  = buildingPrice * (isNewBuilding ? 0.50 : 0.60);
+  let regTax = 0;
+  regTax += Math.ceil(landAss * 0.015);
+  if (hasBuilding) {
+    let bRate;
+    if (isNewBuilding) bRate = isResidential ? 0.0015 : 0.004;
+    else               bRate = isResidential ? 0.003  : 0.02;
+    regTax += Math.ceil(bldAss * bRate);
+  }
+  if (S.loan) regTax += Math.ceil(loanAmt * (isResidential ? 0.001 : 0.004));
+  const scrivener = hasBuilding ? 100000 : 70000;
+  const regTotal  = regTax + scrivener;
+
+  // 固定資産税精算（中古のみ）
+  const taxAdj = isUsed ? Math.ceil((landAss + bldAss) * 0.017 * 0.5) : 0;
+
+  // 火災保険料
+  let fireInsur = 0;
+  if (S.insur && hasBuilding) {
+    if (isMansion) fireInsur = 80000;
+    else if (isLB) fireInsur = Math.max(100000, Math.ceil(buildingPrice * 0.002));
+    else           fireInsur = Math.max(100000, Math.ceil(totalPrice * 0.004));
+  }
+
+  // ローン費用
+  let loanFee = 0;
+  if (S.loan) {
+    if (S.loanType === 'fixed') loanFee = 55000;
+    else                        loanFee = Math.ceil(loanAmt * 0.022);
+  }
+
+  // 不動産取得税
+  let acquiTax = 0;
+  if (!isMilitary) {
+    acquiTax += Math.ceil(landAss * 0.03 * 0.5);
+    if (hasBuilding) {
+      if (isResidential && isNewBuilding) {
+        acquiTax += Math.ceil(Math.max(0, bldAss - 12_000_000) * 0.03);
+      } else if (isResidential && isUsed) {
+        acquiTax += Math.ceil(Math.max(0, bldAss - 4_200_000) * 0.03);
+      } else {
+        acquiTax += Math.ceil(bldAss * 0.03);
+      }
+    }
+  }
+
+  // セクション合計
+  const sect1 = depositAmt + brokerHalf1;
+  const sect2  = [remaining, stSale, stConstr, regTotal, taxAdj, fireInsur, loanFee, stLoan, brokerHalf2].reduce((a,b)=>a+b,0);
+  const grandTotal = sect1 + sect2;
+
+  // 試算書HTML生成
+  document.getElementById('shDate').textContent = `作成日：${nowDate()}`;
+  let compHTML = '';
+  if (company) compHTML += `<strong>${company}</strong>`;
+  if (phone)   compHTML += `TEL：${phone}<br>`;
+  if (agent)   compHTML += `担当：${agent}`;
+  document.getElementById('shCompany').innerHTML = compHTML || '&nbsp;';
+  document.getElementById('shCustomer').textContent = customer ? `${customer} 様` : '';
+  document.getElementById('shProp').textContent = prop;
+
+  if (isLB) {
+    document.getElementById('shPriceLbl').textContent = '売買代金（内訳）';
+    document.getElementById('shPrice').innerHTML =
+      `${Y(totalPrice)}<br><span style="font-size:0.72em;font-weight:400;color:var(--muted)">土地 ${Y(landPrice)}　＋　建物（工事費）${Y(buildingPrice)}</span>`;
+  } else {
+    document.getElementById('shPriceLbl').textContent = '売買代金';
+    document.getElementById('shPrice').textContent = Y(totalPrice);
+  }
+
+  const rows = [];
+  rows.push({ type: 'cat', cat: '契約締結時' });
+  rows.push({ cat: '', name: '手付金', amt: depositAmt });
+  if (S.broker) rows.push({ cat:'', name:'仲介手数料（前払い分）', amt:brokerHalf1, note:'仲介手数料の半額を契約時にお支払いいただきます' });
+  rows.push({ type:'total', cat:'契約締結時合計', sym:'①', amt:sect1 });
+
+  rows.push({ type:'cat', cat:'残金決済時' });
+  rows.push({ cat:'', name:'売買代金残金', amt:remaining, note:'売買代金 − 手付金' });
+  rows.push({ cat:'', name:'印紙税（売買契約書）', amt:stSale, note:`契約金額 ${Y(isLB ? landPrice : totalPrice)} に対する印紙代` });
+  if (isLB && stConstr > 0) rows.push({ cat:'', name:'印紙税（工事請負契約書）', amt:stConstr, note:`工事費 ${Y(buildingPrice)} に対する印紙代` });
+  rows.push({ cat:'', name:'登記費用', amt:regTotal, approx:true, note:`登録免許税 ${Y(regTax)} ＋ 司法書士報酬（概算）` });
+  if (isUsed) rows.push({ cat:'', name:'固定資産税・都市計画税精算', amt:taxAdj, approx:true, note:'引渡し日以降の固定資産税を日割り精算（概算）' });
+  if (S.insur && hasBuilding) rows.push({ cat:'', name:'火災保険料', amt:fireInsur, approx:true, note:'建物の構造・広さ・補償内容によって変わります（概算）' });
+  if (S.loan) {
+    rows.push({ cat:'', name:'融資手数料', amt:loanFee, approx:S.loanType==='fixed', note:S.loanType==='fixed'?'金融機関により異なります（概算）':`借入金額 ${Y(loanAmt)} × 2.2%` });
+    rows.push({ cat:'', name:'印紙税（金銭消費貸借契約書）', amt:stLoan, note:`借入金額 ${Y(loanAmt)} に対する印紙代` });
+  }
+  if (S.broker) rows.push({ cat:'', name:'仲介手数料（残金）', amt:brokerHalf2 });
+  rows.push({ type:'total', cat:'残金決済時合計', sym:'②', amt:sect2 });
+  rows.push({ type:'grand', cat:'売買契約金総額　①＋②', amt:grandTotal });
+
+  let html = '';
+  rows.forEach(r => {
+    if (r.type === 'cat') {
+      html += `<tr class="cat-row"><td colspan="3">${r.cat}</td></tr>`;
+    } else if (r.type === 'total') {
+      html += `<tr class="total-row"><td colspan="2">${r.cat} <span class="circle-num">${r.sym}</span></td><td class="amt">${Y(r.amt)}</td></tr>`;
+    } else if (r.type === 'grand') {
+      html += `<tr class="grand-row"><td colspan="2">${r.cat}</td><td class="amt">${Y(r.amt)}</td></tr>`;
+    } else {
+      const approxBadge = r.approx ? `<span class="note-approx">※概算</span>` : '';
+      const noteHTML    = r.note   ? `<div class="sub-note">${r.note}</div>` : '';
+      html += `<tr><td></td><td>${r.name}${approxBadge}${noteHTML}</td><td class="amt">${Y(r.amt)}</td></tr>`;
+    }
+  });
+  document.getElementById('shTableBody').innerHTML = html;
+
+  if (acquiTax > 0) {
+    document.getElementById('shAcqui').style.display = 'block';
+    const acquiNote = isResidential && isNewBuilding && hasBuilding
+      ? '新築住宅の軽減措置（建物評価額から最大1,200万円控除）適用後の概算'
+      : '評価額をもとに概算。居住用の場合は軽減措置が適用される場合があります';
+    document.getElementById('shAcquiNote').textContent = acquiNote;
+    document.getElementById('shAcquiAmt').textContent  = Y(acquiTax);
+  } else {
+    document.getElementById('shAcqui').style.display = 'none';
+  }
+
+  const typeLabel = {
+    new_mansion:'新築マンション', used_mansion:'中古マンション',
+    new_house:'新築一戸建て（建売）', used_house:'中古一戸建て',
+    land_building:'土地＋注文住宅', land:'土地のみ', military_land:'軍用地'
+  };
+  document.getElementById('shNote').innerHTML = `
+    ※上記諸費用は <strong>${typeLabel[S.type]}</strong>（${S.purpose === 'residential' ? '居住用' : '投資・賃貸用'}）の場合に一般的にかかる費用の概算です。
+    実際の金額は物件の詳細条件・適用される税制の特例・金融機関の種類・登記する固定資産税評価額等により異なります。<br>
+    「※概算」と表記している費用は特に変動が大きい項目です。正確な金額は担当の司法書士・税理士・保険会社等にご確認ください。<br>
+    不動産取得税は取得後約6ヶ月を目安に都道府県から通知が届きます。別途ご準備をお願いいたします。
+    ${isMilitary ? '<br>※軍用地は米軍に貸し出されている土地で安定した賃料収入が見込まれますが、不動産取得税は詳細確認が必要です。' : ''}
+  `;
+
+  document.getElementById('printArea').style.display = 'block';
+  goS(4);
+  setTimeout(() => document.getElementById('printArea').scrollIntoView({ behavior: 'smooth' }), 200);
+}
+
+// ====================================================
+// RESET
+// ====================================================
+function resetAll() {
+  S.type = null; S.purpose = null; S.broker = true; S.loan = false;
+  S.loanType = 'fixed'; S.insur = true;
+  ['fCompany','fAgent','fPhone','fCustomer','fProperty',
+   'fPrice','fLandPrice','fBldPrice','fDeposit','fLoan']
+    .forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+  document.querySelectorAll('.oc').forEach(c => c.classList.remove('sel'));
+  document.getElementById('ltFix').classList.add('sel');
+  document.getElementById('ltPct').classList.remove('sel');
+  document.getElementById('b1n').disabled = true;
+  document.getElementById('b2n').disabled = true;
+  document.getElementById('printArea').style.display = 'none';
+  goS(1);
+}
+</script>
+</body>
+</html>
